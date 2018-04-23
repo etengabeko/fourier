@@ -10,8 +10,8 @@
  */
 struct SineOption
 {
-    double frequency = 0.0;   //!< Частота
-    double startPhase = 0.0;  //!< Начальная фаза
+    double freqFactor = 0.0;  //!< Множитель частоты (частота определяется как i/freqFactor).
+    double startPhase = 0.0;  //!< Начальная фаза.
 };
 
 /**
@@ -54,5 +54,14 @@ using CompositeSignal = std::vector<double>;
 const CompositeSignal generate(const size_t signalLength,
                                const std::vector<SineSignal>& baseSignals,
                                bool noiseEnabled = false);
+
+/**
+ * @brief sineSignalValue - возвращает значение амплитуды базового сигнала с характеристиками signal
+ *        в момент времени, определённый значением index.
+ * @param signal - параметры базового синусоидального сигнала.
+ * @param index - индекс, характеризующий момент времени.
+ * @return значение амплитуды сигнала.
+ */
+double sineSignalValue(const SineSignal& signal, const size_t index);
 
 #endif // GENERATE_H

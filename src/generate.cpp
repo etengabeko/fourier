@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <random>
 
 #include "common.h"
@@ -47,12 +48,16 @@ const CompositeSignal generate(const size_t signalLength,
 {
     assert(signalLength > 0);
 
-    unused(baseSignals);
-
     const double kDefaultValue = 0.0;
     CompositeSignal result(signalLength, kDefaultValue);
 
-    // TODO: impl
+    for (size_t currentIndex = 0; currentIndex < signalLength; ++currentIndex)
+    {
+        for (const SineSignal& each : baseSignals)
+        {
+            result[currentIndex] += sineSignalValue(each, currentIndex);
+        }
+    }
 
     if (noiseEnabled)
     {
@@ -67,4 +72,19 @@ const CompositeSignal generate(const size_t signalLength,
     }
 
     return result;
+}
+
+double sineSignalValue(const SineSignal& signal, const size_t index)
+{
+    if (signal.behaviour.size() <= index)
+    {
+        return 0.0;
+    }
+
+    const SineOption& currentSine = signal.sine;
+    const SineBehaviour& currentBehaviour = signal.behaviour.at(index);
+
+    return (  (currentBehaviour.enabled ? 1 : 0)
+            * currentBehaviour.volumeLevel
+            * std::sin(index / currentSine.freqFactor + currentSine.startPhase));
 }
