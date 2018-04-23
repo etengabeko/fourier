@@ -1,3 +1,5 @@
 Makefile
 build
 *.o
+*.csv
+*.pro.user
