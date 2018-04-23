@@ -14,14 +14,14 @@ namespace
 {
 
 /**
- * @brief writeCsv - записывает значения values в csv-файл с именем fileName.
+ * @brief writeValuesToCsv - записывает значения values в csv-файл с именем fileName.
  * @param fileName - имя выходного файла.
- * @param title - заголовок столбца данных.
- * @param values - данные для записи.
+ * @param titles - список заголовков столбцов данных.
+ * @param columns - список данных для записи (по столбцам).
  */
-void writeCsv(const std::string& fileName,
-              const std::string& title,
-              const std::vector<double>& values)
+void writeValuesToCsv(const std::string& fileName,
+                      const std::vector<std::string>& titles,
+                      const std::vector<std::vector<double>>& columns)
 {
     std::ofstream out(fileName);
     if (!out.good())
@@ -30,18 +30,70 @@ void writeCsv(const std::string& fileName,
         return;
     }
 
-    out << "id" << ", " << title << std::endl;
-    for (size_t i = 0, sz = values.size(); i< sz; ++i)
+    out << "id" << ", ";
+    for (const std::string& eachTitle : titles)
+    {
+        out << eachTitle << ", ";
+    }
+    out << std::endl;
+
+    const auto maxColumnIterator = std::max_element(std::begin(columns),
+                                                    std::end(columns),
+                                                    [] (const std::vector<double>& lhs,
+                                                        const std::vector<double>& rhs)
+                                                    { return lhs.size() < rhs.size(); });
+    for (size_t i = 0, maxSize = maxColumnIterator->size(); i < maxSize; ++i)
     {
         if (!out)
         {
             Logger::error(strerror(errno));
             return;
         }
-        out << (i + 1) << ", " << values.at(i) << std::endl;
+
+        out << (i + 1) << ", ";
+        for (const std::vector<double>& eachColumn : columns)
+        {
+            out << (eachColumn.size() > i ? std::to_string(eachColumn.at(i)) : "") << ", ";
+        }
+        out << std::endl;
     }
 
     Logger::info("Writed " + fileName);
+}
+
+/**
+ * @brief writeSignalToCsv - записывает базовый сигнал в csv-файл с именем fileName.
+ *        Параметры сигнала записываются в два столбца:
+ *         1) on/off - 1.0 если сигнал включен (т.е. его значение участвует в результирующем сигнале), иначе 0.0;
+ *         2) value - значение амплитуды сигнала.
+ * @param fileName - имя выходного файла.
+ * @param signal - сигнал для записи.
+ */
+void writeSignalToCsv(const std::string& fileName,
+                      const SineSignal& signal)
+{
+    enum class SignalState
+    {
+        Off = 0,
+        On = 1
+    };
+
+    const size_t size = signal.behaviour.size();
+
+    std::vector<double> signalEnables;
+    std::vector<double> signalValues;
+    signalEnables.reserve(size);
+    signalValues.reserve(size);
+
+    for (size_t i = 0; i < size; ++i)
+    {
+        signalEnables.push_back(static_cast<double>(signal.behaviour.at(i).enabled ? SignalState::On : SignalState::Off));
+        signalValues.push_back(sineSignalValue(signal, i));
+    }
+
+    writeValuesToCsv(fileName,
+                     { "On/Off", "Value" },
+                     { signalEnables, signalValues });
 }
 
 /**
@@ -108,16 +160,30 @@ int main(int argc, char* argv[])
     unused(argc);
     unused(argv);
 
-    const size_t kSignalLength = 1000;
-    const bool kNoiseEnabled = false;
+    // Параметры исследования:
+    const size_t kSignalLength = 1000; //!< Длина исследуемых отрезков сигналов (в дискретах).
+    const bool kNoiseEnabled = true;   //!< Добавлять ли шум при генерации результирующего сигнала?
+
+    // Создание набора базовых сигналов:
     std::vector<double> frequencies;
     const std::vector<SineSignal> baseSignals = makeBaseSignals(kSignalLength, frequencies);
 
+    // Запись базовых сигналов в csv-файлы:
+    for (const SineSignal& each : baseSignals)
+    {
+        static size_t index = 0;
+        const std::string fileName = "base_signal_#" + std::to_string(++index) + ".csv";
+        ::writeSignalToCsv(fileName, each);
+    }
+
+    // Генерация результирующего сигнала из набора базовых:
     CompositeSignal signal = generate(kSignalLength,
                                       baseSignals,
                                       kNoiseEnabled);
-    ::writeCsv("final_signal.csv", "Final signal", signal);
+    // Запись результирующего сигнала csv-файл:
+    ::writeValuesToCsv("final_signal.csv", { "Final signal" }, { signal });
 
+    // Разложение результирующего сигнала на набор базовых:
     WaveDecomposition waves = decompose(signal, frequencies);
 
     // TODO: log decomposition
