@@ -30,10 +30,15 @@ void writeValuesToCsv(const std::string& fileName,
         return;
     }
 
-    out << "id" << ", ";
+    bool isFirstColumn = true;
     for (const std::string& eachTitle : titles)
     {
-        out << eachTitle << ", ";
+        if (!isFirstColumn)
+            out << ", ";
+        else
+            isFirstColumn = false;
+
+        out << eachTitle;
     }
     out << std::endl;
 
@@ -50,10 +55,15 @@ void writeValuesToCsv(const std::string& fileName,
             return;
         }
 
-        out << (i + 1) << ", ";
+        isFirstColumn = true;
         for (const std::vector<double>& eachColumn : columns)
         {
-            out << (eachColumn.size() > i ? std::to_string(eachColumn.at(i)) : "") << ", ";
+            if (!isFirstColumn)
+                out << ", ";
+            else
+                isFirstColumn = true;
+
+            out << (eachColumn.size() > i ? std::to_string(eachColumn.at(i)) : "");
         }
         out << std::endl;
     }
@@ -139,12 +149,12 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
               SineBehaviour{3.0, true});
 
     SineSignal& third = result[2];
-    third.sine.freqFactor = 1.0;
+    third.sine.freqFactor = 2.0;
     third.sine.startPhase = 0.0;
     third.behaviour.resize(signalLength);
     std::fill(std::begin(third.behaviour),
               std::end(third.behaviour),
-              SineBehaviour{SineBehaviour::kVolumeMax, true});
+              SineBehaviour{SineBehaviour::kVolumeMin, true});
 
     frequencies.push_back(first.sine.freqFactor);
     frequencies.push_back(second.sine.freqFactor);
