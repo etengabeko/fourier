@@ -5,8 +5,6 @@
 #include <cmath>
 #include <random>
 
-#include "common.h"
-
 namespace
 {
 /**
@@ -38,9 +36,6 @@ double addNoise(const double value, const double maxValue)
 }
 
 }
-
-const double SineBehaviour::kVolumeMin = 0.3;
-const double SineBehaviour::kVolumeMax = 3.0;
 
 const CompositeSignal generate(const size_t signalLength,
                                const std::vector<SineSignal>& baseSignals,

@@ -4,44 +4,7 @@
 #include <cstddef>
 #include <vector>
 
-/**
- * @struct SineOption
- * @brief Основные параметры синусоидального базового сигнала.
- */
-struct SineOption
-{
-    double freqFactor = 0.0;  //!< Множитель частоты (частота определяется как i/freqFactor).
-    double startPhase = 0.0;  //!< Начальная фаза.
-};
-
-/**
- * @struct SineBehaviour
- * @brief Поведение базового сигнала в конкретный момент времени (для определённого дискретного отсчёта).
- */
-struct SineBehaviour
-{
-    static const double kVolumeMin;  //!< Минимальное допустимое значение громкости (= 0.3).
-    static const double kVolumeMax;  //!< Максимальное допустимое значение громкости (= 3.0).
-
-    double volumeLevel = kVolumeMax; //!< Громкость сигнала.
-    bool   enabled = false;          //!< Включен ли сигнал.
-};
-
-/**
- * @struct SineSignal
- * @brief Параметры базового сигнала.
- */
-struct SineSignal
-{
-    SineOption sine;                      //!< Характеристики синусоиды базового сигнала.
-    std::vector<SineBehaviour> behaviour; //!< Поведение базового сигнала во времени.
-};
-
-/**
- * @brief CompositeSignal - результирующий сигнал - набор дискретных значений,
- *        полученных суммированием синусоидальных базовых сигналов.
- */
-using CompositeSignal = std::vector<double>;
+#include "common.h"
 
 /**
  * @brief generate - генерирует сигнал длиной signalLength из набора базовых сигналов,

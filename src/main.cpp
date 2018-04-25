@@ -1,5 +1,6 @@
 #include "common.h"
 #include "decompose.h"
+#include "dft.h"
 #include "generate.h"
 #include "logger.h"
 
@@ -61,7 +62,7 @@ void writeValuesToCsv(const std::string& fileName,
             if (!isFirstColumn)
                 out << ", ";
             else
-                isFirstColumn = true;
+                isFirstColumn = false;
 
             out << (eachColumn.size() > i ? std::to_string(eachColumn.at(i)) : "");
         }
@@ -118,6 +119,7 @@ void writeSignalToCsv(const std::string& fileName,
 const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
                                               std::vector<double>& frequencies)
 {
+
     const size_t kFrequenciesCount = 3; //!< Количество базовых частот, из которых складывается результирующий сигнал.
     frequencies.reserve(kFrequenciesCount);
 
@@ -190,8 +192,12 @@ int main(int argc, char* argv[])
     CompositeSignal signal = generate(kSignalLength,
                                       baseSignals,
                                       kNoiseEnabled);
-    // Запись результирующего сигнала csv-файл:
-    ::writeValuesToCsv("final_signal.csv", { "Final signal" }, { signal });
+
+    // Вычисление спектра результирующего сигнала:
+    SignalSpectrum spectrum = discreteFourierTransform(signal);
+
+    // Запись результирующего сигнала и его спектра в csv-файл:
+    ::writeValuesToCsv("final_signal.csv", { "Final signal", "Spectrum" }, { signal, spectrum });
 
     // Разложение результирующего сигнала на набор базовых:
     WaveDecomposition waves = decompose(signal, frequencies);
