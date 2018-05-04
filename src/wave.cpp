@@ -11,3 +11,20 @@ Wave::Wave(const double afrequency,
 {
 
 }
+
+const std::string Wave::toString() const
+{
+    std::string result;
+    result += "{";
+    result += "\n    frequency = ";
+    result += std::to_string(frequency);
+    result += "\n    confidence = ";
+    result += std::to_string(confidence);
+    result += "\n    start_idx = ";
+    result += std::to_string(start_idx);
+    result += "\n    length = ";
+    result += std::to_string(length);
+    result += "\n}";
+
+    return result;
+}

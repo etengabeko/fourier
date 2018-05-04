@@ -45,11 +45,4 @@ struct SineSignal
  */
 using CompositeSignal = std::vector<double>;
 
-/** TODO
- * @brief SignalSpectrum - спектр сигнала - набор дискретных значений амплитуд
- *        частотных составляющих комбинированного сигнала в диапазоне от 1 до 1/N Гц,
- *        где N - количество дискретов в наборе.
- */
-using SignalSpectrum = std::vector<double>;
-
 #endif // COMMON_H
