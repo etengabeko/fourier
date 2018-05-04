@@ -22,6 +22,7 @@ namespace
  */
 void writeValuesToCsv(const std::string& fileName,
                       const std::vector<std::string>& titles,
+                      const size_t linesCount,
                       const std::vector<std::vector<double>>& columns)
 {
     std::ofstream out(fileName);
@@ -43,12 +44,7 @@ void writeValuesToCsv(const std::string& fileName,
     }
     out << std::endl;
 
-    const auto maxColumnIterator = std::max_element(std::begin(columns),
-                                                    std::end(columns),
-                                                    [] (const std::vector<double>& lhs,
-                                                        const std::vector<double>& rhs)
-                                                    { return lhs.size() < rhs.size(); });
-    for (size_t i = 0, maxSize = maxColumnIterator->size(); i < maxSize; ++i)
+    for (size_t i = 0; i < linesCount; ++i)
     {
         if (!out)
         {
@@ -104,6 +100,7 @@ void writeSignalToCsv(const std::string& fileName,
 
     writeValuesToCsv(fileName,
                      { "On/Off", "Value" },
+                     size,
                      { signalEnables, signalValues });
 }
 
@@ -193,11 +190,27 @@ int main(int argc, char* argv[])
                                       baseSignals,
                                       kNoiseEnabled);
 
+    using ComplexVector = std::vector<std::complex<double>>;
+
+    ComplexVector spectrum = fourier::dft(signal);
+    CompositeSignal rep_signal = fourier::inverse_dft(spectrum);
+
+    ::writeValuesToCsv("final-signal.csv",
+                       { "signal", "spectrum", "repair" },
+                       kSignalLength,
+                       { signal,
+                         fourier::frequencyResponse(spectrum),
+                         rep_signal });
+
+/*
     // Вычисление спектра результирующего сигнала:
     SignalSpectrum spectrum = discreteFourierTransform(signal);
 
-    // Запись результирующего сигнала и его спектра в csv-файл:
-    ::writeValuesToCsv("final_signal.csv", { "Final signal", "Spectrum" }, { signal, spectrum });
+    // Восстановление исходного сигнала по его спектру:
+    CompositeSignal repaired = inverseDiscreteFourierTransform(spectrum);
+
+    // Запись результирующего сигнала, его спектра и восстановленного сигнала в csv-файл:
+    ::writeValuesToCsv("final_signal.csv", { "Final signal", "Spectrum", "Repaired signal" }, { signal, spectrum, repaired });
 
     // Разложение результирующего сигнала на набор базовых:
     WaveDecomposition waves = decompose(signal, frequencies);
@@ -205,6 +218,6 @@ int main(int argc, char* argv[])
     // TODO: log decomposition
 
     unused(waves);
-
+*/
     return EXIT_SUCCESS;
 }
