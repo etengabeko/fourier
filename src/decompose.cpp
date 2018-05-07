@@ -103,7 +103,7 @@ WaveDecomposition decompose(const std::vector<double>& signal,
 
     for (const double& each : frequencies)
     {
-        const WaveDecomposition waves = ::split(fourier::inverse_dft(spectrum,
+        const WaveDecomposition waves = ::split(fourier::inverseDft(spectrum,
                                                                      ::frequencyToIndex(each, frequencies.size())),
                                                 each);
         result.insert(result.end(),

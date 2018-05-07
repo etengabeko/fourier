@@ -59,14 +59,14 @@ const std::vector<std::complex<double>> dft(const std::vector<double>& signal)
     return spectrum;
 }
 
-const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& spectrum)
+const std::vector<double> inverseDft(const std::vector<std::complex<double>>& spectrum)
 {
     const size_t kLength = spectrum.size();
     std::vector<double> signal(kLength, 0.0);
 
     for (size_t spectrumIndex = 0; spectrumIndex < kLength; ++spectrumIndex)
     {
-        const std::vector<double> harmonic = inverse_dft(spectrum, spectrumIndex);
+        const std::vector<double> harmonic = inverseDft(spectrum, spectrumIndex);
         for (size_t signalIndex = 0; signalIndex < kLength; ++signalIndex)
         {
             signal[signalIndex] += harmonic[signalIndex];
@@ -75,7 +75,7 @@ const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& s
     return signal;
 }
 
-const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& spectrum, const size_t spectrumIndex)
+const std::vector<double> inverseDft(const std::vector<std::complex<double>>& spectrum, const size_t spectrumIndex)
 {
     const size_t kLength = spectrum.size();
     std::vector<double> sineSignal(kLength, 0.0);

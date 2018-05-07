@@ -20,7 +20,7 @@ const std::vector<std::complex<double>> dft(const std::vector<double>& signal);
  * @param spectrum - спектр сигнала.
  * @return последовательность отсчётов восстановленного сигнала (только его действительная часть).
  */
-const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& spectrum);
+const std::vector<double> inverseDft(const std::vector<std::complex<double>>& spectrum);
 
 /**
  * @brief inverse_dft - вычисление обратного дискретного преобразования Фурье
@@ -29,7 +29,7 @@ const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& s
  * @param spectrumIndex - индекс в последовательность спктра, соответствующий частоте восстанавливаемой гармоники.
  * @return последовательность отсчётов восстановленной гармоники сигнала (только действительная часть).
  */
-const std::vector<double> inverse_dft(const std::vector<std::complex<double>>& spectrum, const size_t spectrumIndex);
+const std::vector<double> inverseDft(const std::vector<std::complex<double>>& spectrum, const size_t spectrumIndex);
 
 /**
  * @brief frequencyResponse - вычисление модуля спектра (амплитудно-частотная характеристика (АЧХ) сигнала).

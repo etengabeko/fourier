@@ -196,28 +196,24 @@ int main(int argc, char* argv[])
         ComplexVector spectrum = fourier::dft(signal);
 
         // Восстановление исходного сигнала по его спектру:
-        CompositeSignal repaired = fourier::inverse_dft(spectrum);
-
-//        for (const SineSignal& each : baseSignals)
-//        {
-//            static size_t index = 0;
-//            Logger::debug(  "Harmonic #" + std::to_string(++index)
-//                          + ": frequency = " + std::to_string(each.sine.freqFactor)
-//                          + ", index = " + std::to_string(::frequencyToIndex(each.sine.freqFactor, kSignalLength))
-//                          + ", value = " + std::to_string(fourier::modulus(spectrum.at(::frequencyToIndex(each.sine.freqFactor, kSignalLength)))));
-//        }
+        CompositeSignal repaired = fourier::inverseDft(spectrum);
 
         // Восстановление гармоник, соответствующих базовым частотам:
+        std::vector<std::vector<double>> baseHarmonics;
+        baseHarmonics.reserve(baseSignals.size());
+        std::vector<std::string> titles;
+        titles.reserve(baseSignals.size());
         for (const SineSignal& each : baseSignals)
         {
             static size_t index = 0;
-            const std::string fileName = "repair_base_#" + std::to_string(++index) + ".csv";
-            CompositeSignal harmonic = fourier::inverse_dft(spectrum, ::frequencyToIndex(each.sine.freqFactor, kSignalLength));
-            ::writeValuesToCsv(fileName,
-                               { "repair" },
-                               kSignalLength,
-                               { harmonic });
+            titles.push_back("harmonic #" + std::to_string(++index));
+            baseHarmonics.push_back(fourier::inverseDft(spectrum,
+                                                         ::frequencyToIndex(each.sine.freqFactor, kSignalLength)));
         }
+        ::writeValuesToCsv("base_freq_harmonics.csv",
+                           titles,
+                           kSignalLength,
+                           baseHarmonics);
 
         // Запись базовых сигналов в csv-файлы:
         for (const SineSignal& each : baseSignals)
