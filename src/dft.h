@@ -31,20 +31,6 @@ const std::vector<double> inverseDft(const std::vector<std::complex<double>>& sp
  */
 const std::vector<double> inverseDft(const std::vector<std::complex<double>>& spectrum, const size_t spectrumIndex);
 
-/**
- * @brief frequencyResponse - вычисление модуля спектра (амплитудно-частотная характеристика (АЧХ) сигнала).
- * @param spectrum - спектр сигнала.
- * @return значения амплитуды сигнала в зависимости от частоты.
- */
-const std::vector<double> frequencyResponse(const std::vector<std::complex<double>>& spectrum);
-
-/**
- * @brief phaseResponse - вычисление аргумента спектра (фазово-частотная характеристика (ФЧХ) сигнала).
- * @param spectrum - спектр сигнала.
- * @return значения фазы сигнала в зависимости от частоты.
- */
-const std::vector<double> phaseResponse(const std::vector<std::complex<double>>& spectrum);
-
 } // fourier
 
 #endif // DFT_H

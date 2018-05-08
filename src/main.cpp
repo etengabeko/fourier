@@ -2,6 +2,7 @@
 #include "decompose.h"
 #include "dft.h"
 #include "generate.h"
+#include "filter.h"
 #include "logger.h"
 
 #include <algorithm>
@@ -70,15 +71,13 @@ void writeValuesToCsv(const std::string& fileName,
 }
 
 /**
- * @brief writeSignalToCsv - записывает базовый сигнал в csv-файл с именем fileName.
- *        Параметры сигнала записываются в два столбца:
- *         1) on/off - 1.0 если сигнал включен (т.е. его значение участвует в результирующем сигнале), иначе 0.0;
- *         2) value - значение амплитуды сигнала.
- * @param fileName - имя выходного файла.
+ * @brief baseSignalValues - возвращает набор значений амплитуды базового сигнала signal.
  * @param signal - сигнал для записи.
+ * @param signalEnables [optional] - набор значений активности сигнала (вкл/выкл сигнал):
+ *        1.0 если сигнал включен (т.е. его значение участвует в результирующем сигнале), иначе 0.0;
  */
-void writeSignalToCsv(const std::string& fileName,
-                      const SineSignal& signal)
+const std::vector<double> baseSignalValues(const SineSignal& signal,
+                                           std::vector<double>* signalEnables = nullptr)
 {
     enum class SignalState
     {
@@ -86,23 +85,27 @@ void writeSignalToCsv(const std::string& fileName,
         On = 1
     };
 
-    const size_t size = signal.behaviour.size();
+    const size_t kLength = signal.behaviour.size();
 
-    std::vector<double> signalEnables;
-    std::vector<double> signalValues;
-    signalEnables.reserve(size);
-    signalValues.reserve(size);
-
-    for (size_t i = 0; i < size; ++i)
+    if (signalEnables != nullptr)
     {
-        signalEnables.push_back(static_cast<double>(signal.behaviour.at(i).enabled ? SignalState::On : SignalState::Off));
-        signalValues.push_back(sineSignalValue(signal, i));
+        signalEnables->clear();
+        signalEnables->reserve(kLength);
     }
 
-    writeValuesToCsv(fileName,
-                     { "On/Off", "Value" },
-                     size,
-                     { signalEnables, signalValues });
+    std::vector<double> result;
+    result.reserve(kLength);
+
+    for (size_t index = 0; index < kLength; ++index)
+    {
+        if (signalEnables != nullptr)
+        {
+            signalEnables->push_back(static_cast<double>(signal.behaviour.at(index).enabled ? SignalState::On : SignalState::Off));
+        }
+        result.push_back(sineSignalValue(signal, index));
+    }
+
+    return result;
 }
 
 /**
@@ -129,10 +132,10 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     first.behaviour.resize(signalLength);
     std::fill(std::begin(first.behaviour) + 100,
               std::begin(first.behaviour) + 500,
-              SineBehaviour{2.5, true});
+              SineBehaviour{ 2.5, true });
     std::fill(std::begin(first.behaviour) + 900,
               std::end(first.behaviour),
-              SineBehaviour{1.5, true});
+              SineBehaviour{ 1.5, true });
 
     SineSignal& second = result[1];
     second.sine.freqFactor = 5.5;
@@ -140,13 +143,13 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     second.behaviour.resize(signalLength);
     std::fill(std::begin(second.behaviour),
               std::begin(second.behaviour) + 300,
-              SineBehaviour{1.0, true});
+              SineBehaviour{ 1.0, true });
     std::fill(std::begin(second.behaviour) + 400,
               std::begin(second.behaviour) + 600,
-              SineBehaviour{2.0, true});
+              SineBehaviour{ 2.0, true });
     std::fill(std::begin(second.behaviour) + 700,
               std::begin(second.behaviour) + 800,
-              SineBehaviour{3.0, true});
+              SineBehaviour{ 3.0, true });
 
     SineSignal& third = result[2];
     third.sine.freqFactor = 2.0;
@@ -163,12 +166,19 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     return result;
 }
 
-int frequencyToIndex(const double frequency, const size_t length)
-{
-    return std::round(length / (2.0 * M_PI * frequency));
 }
 
-}
+/**
+ * @brief CompositeSignal - результирующий сигнал - набор дискретных значений,
+ *        полученных суммированием синусоидальных базовых сигналов.
+ */
+using CompositeSignal = std::vector<double>;
+
+/**
+ * @brief SignalSpectrum - спектр сигнала - набор дискретных значений,
+ *        характеризующих сигнал в частотной области.
+ */
+using SignalSpectrum = std::vector<std::complex<double>>;
 
 int main(int argc, char* argv[])
 {
@@ -190,10 +200,8 @@ int main(int argc, char* argv[])
 
     // Необязательный блок. Нужен лишь для сохранения полученных значений в csv-файлы (например, для построения графиков).
     {
-        using ComplexVector = std::vector<std::complex<double>>;
-
         // Вычисление спектра результирующего сигнала:
-        ComplexVector spectrum = fourier::dft(signal);
+        SignalSpectrum spectrum = fourier::dft(signal);
 
         // Восстановление исходного сигнала по его спектру:
         CompositeSignal repaired = fourier::inverseDft(spectrum);
@@ -208,28 +216,39 @@ int main(int argc, char* argv[])
             static size_t index = 0;
             titles.push_back("harmonic #" + std::to_string(++index));
             baseHarmonics.push_back(fourier::inverseDft(spectrum,
-                                                         ::frequencyToIndex(each.sine.freqFactor, kSignalLength)));
+                                                        frequencyToIndex(each.sine.freqFactor, kSignalLength)));
         }
-        ::writeValuesToCsv("base_freq_harmonics.csv",
+        ::writeValuesToCsv("base_harmonics.csv",
                            titles,
                            kSignalLength,
                            baseHarmonics);
 
-        // Запись базовых сигналов в csv-файлы:
+        // Выделение базовых составляющих из сигнала и запись их в csv-файлы:
         for (const SineSignal& each : baseSignals)
         {
             static size_t index = 0;
             const std::string fileName = "base_signal_#" + std::to_string(++index) + ".csv";
-            ::writeSignalToCsv(fileName, each);
+
+            std::vector<double> eachEnables;
+            CompositeSignal eachValues = ::baseSignalValues(each, &eachEnables);
+
+            SignalSpectrum eachSpectrum;
+            CompositeSignal eachRepaired = filterByFrequency(signal,
+                                                             each.sine.freqFactor,
+                                                             &eachSpectrum);
+            ::writeValuesToCsv(fileName,
+                               { "on/off", "original", "spectrum", "repaired" },
+                               kSignalLength,
+                               { eachEnables, eachValues, frequencyResponse(eachSpectrum), eachRepaired });
         }
 
         // Запись результирующего сигнала, его спектра и восстановленного сигнала в csv-файл:
-        ::writeValuesToCsv("repair-signal.csv",
-                           { "original signal", "spectrum", "repair signal" },
+        ::writeValuesToCsv("repaired-signal.csv",
+                           { "original", "spectrum", "repaired" },
                            kSignalLength,
-                           { signal, fourier::frequencyResponse(spectrum), repaired });
+                           { signal, frequencyResponse(spectrum), repaired });
     }
-
+/* TODO
     // Разложение результирующего сигнала на набор базовых:
     WaveDecomposition waves = decompose(signal, frequencies);
 
@@ -240,6 +259,6 @@ int main(int argc, char* argv[])
         static size_t index = 0;
         Logger::info("Wave #" + std::to_string(++index) + ":\n" + each.toString());
     }
-
+*/
     return EXIT_SUCCESS;
 }

@@ -13,11 +13,6 @@ namespace
 
 double noiseLevel() { return 0.15; }
 
-int frequencyToIndex(const double frequency, const size_t length)
-{
-    return std::round(length / (2.0 * M_PI * frequency));
-}
-
 const std::vector<std::pair<size_t, size_t>> split(const std::vector<double>& signal)
 {
     const double kThreshold = ::noiseLevel() * *(std::max_element(std::begin(signal),
@@ -54,7 +49,7 @@ const std::vector<std::pair<size_t, size_t>> split(const std::vector<double>& si
     return result;
 }
 
-WaveDecomposition split(const CompositeSignal& baseSine, const double frequency)
+WaveDecomposition split(const std::vector<double>& baseSine, const double frequency)
 {
     const double kConfidence = -1.0;
     const size_t kThreshold = baseSine.size() * 0.01; // TODO
@@ -104,7 +99,7 @@ WaveDecomposition decompose(const std::vector<double>& signal,
     for (const double& each : frequencies)
     {
         const WaveDecomposition waves = ::split(fourier::inverseDft(spectrum,
-                                                                     ::frequencyToIndex(each, frequencies.size())),
+                                                                    frequencyToIndex(each, frequencies.size())),
                                                 each);
         result.insert(result.end(),
                       std::begin(waves),

@@ -1,10 +1,61 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <complex>
 #include <vector>
 
+/**
+ * @brief unused - служебная пометка для неиспользуемых переменных.
+ */
 template <typename T>
 void unused(T val) { (void)(val); }
+
+/**
+ * @brief sqr - возвращает квадрат значения value.
+ */
+template <typename T>
+T sqr(T value) { return (value * value); }
+
+/**
+ * @brief kImaginaryUnit - мнимая единица.
+ */
+const std::complex<double> kImaginaryUnit { 0.0, 1.0 };
+
+/**
+ * @brief modulus - возвращает модуль комплексного числа complex.
+ * @param complex - заданное комплексное число.
+ * @return модуль числа complex.
+ */
+double modulus(const std::complex<double>& complex);
+
+/**
+ * @brief argument - возвращает аргумент комплексного числа complex.
+ * @param complex - заданное комплексное число.
+ * @return аргумент числа complex.
+ */
+double argument(const std::complex<double>& complex);
+
+/**
+ * @brief frequencyResponse - вычисление модуля спектра (амплитудно-частотная характеристика (АЧХ) сигнала).
+ * @param spectrum - спектр сигнала.
+ * @return значения амплитуды сигнала в зависимости от частоты.
+ */
+const std::vector<double> frequencyResponse(const std::vector<std::complex<double>>& spectrum);
+
+/**
+ * @brief phaseResponse - вычисление аргумента спектра (фазово-частотная характеристика (ФЧХ) сигнала).
+ * @param spectrum - спектр сигнала.
+ * @return значения фазы сигнала в зависимости от частоты.
+ */
+const std::vector<double> phaseResponse(const std::vector<std::complex<double>>& spectrum);
+
+/**
+ * @brief frequencyToIndex - преобразует множитель частоты frequency в индекс спектра ширины length.
+ * @param frequency - множитель частоты.
+ * @param length - ширина спектра.
+ * @return индекс в последовательности значений спектра, соответствующих указанной частоте.
+ */
+size_t frequencyToIndex(const double frequency, const size_t width);
 
 /**
  * @struct SineOption
@@ -38,11 +89,5 @@ struct SineSignal
     SineOption sine;                      //!< Характеристики синусоиды базового сигнала.
     std::vector<SineBehaviour> behaviour; //!< Поведение базового сигнала во времени.
 };
-
-/**
- * @brief CompositeSignal - результирующий сигнал - набор дискретных значений,
- *        полученных суммированием синусоидальных базовых сигналов.
- */
-using CompositeSignal = std::vector<double>;
 
 #endif // COMMON_H

@@ -37,14 +37,14 @@ double addNoise(const double value, const double maxValue)
 
 }
 
-const CompositeSignal generate(const size_t signalLength,
-                               const std::vector<SineSignal>& baseSignals,
-                               bool noiseEnabled)
+const std::vector<double> generate(const size_t signalLength,
+                                   const std::vector<SineSignal>& baseSignals,
+                                   bool noiseEnabled)
 {
     assert(signalLength > 0);
 
     const double kDefaultValue = 0.0;
-    CompositeSignal result(signalLength, kDefaultValue);
+    std::vector<double> result(signalLength, kDefaultValue);
 
     for (size_t currentIndex = 0; currentIndex < signalLength; ++currentIndex)
     {

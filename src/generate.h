@@ -14,9 +14,9 @@
  * @param noiseEnabled - вкл/выкл добавление случайного шума (в пределах 0%-15% максимальной амплитуды сигнала).
  * @return набор значений результирующего сигнала.
  */
-const CompositeSignal generate(const size_t signalLength,
-                               const std::vector<SineSignal>& baseSignals,
-                               bool noiseEnabled = false);
+const std::vector<double> generate(const size_t signalLength,
+                                   const std::vector<SineSignal>& baseSignals,
+                                   bool noiseEnabled = false);
 
 /**
  * @brief sineSignalValue - возвращает значение амплитуды базового сигнала с характеристиками signal

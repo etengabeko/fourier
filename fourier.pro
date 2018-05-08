@@ -17,6 +17,7 @@ HEADERS = \
     src/common.h \
     src/decompose.h \
     src/dft.h \
+    src/filter.h \
     src/generate.h \
     src/logger.h \
     src/wave.h \
@@ -25,6 +26,7 @@ SOURCES = \
     src/common.cpp \
     src/decompose.cpp \
     src/dft.cpp \
+    src/filter.cpp \
     src/generate.cpp \
     src/logger.cpp \
     src/wave.cpp \
