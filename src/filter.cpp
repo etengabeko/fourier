@@ -11,8 +11,14 @@ namespace
 
 const std::vector<double> makeStandardSignal(const double frequency, const size_t length)
 {
-    const SineSignal sine{ { frequency, 0.0 },
-                           std::vector<SineBehaviour>(length, { SineBehaviour::kVolumeMax, true }) };
+    const size_t kStandardSignalMinimumLength = 5 * frequencyToPeriod(frequency);
+
+    std::vector<SineBehaviour> behaviour(length, { SineBehaviour::kVolumeMin, false });
+    std::fill(std::begin(behaviour),
+              (length >= kStandardSignalMinimumLength ? std::begin(behaviour) + kStandardSignalMinimumLength
+                                                      : std::end(behaviour)),
+              SineBehaviour{ SineBehaviour::kVolumeMax, true });
+    const SineSignal sine{ { frequency, 0.0 }, behaviour };
 
     std::vector<double> result;
     result.reserve(length);

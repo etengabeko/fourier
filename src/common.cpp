@@ -40,3 +40,8 @@ size_t frequencyToIndex(const double frequency, const size_t width)
 {
     return std::round(width / (2.0 * M_PI * frequency));
 }
+
+size_t frequencyToPeriod(const double frequency)
+{
+    return std::ceil(2.0 * M_PI * frequency);
+}

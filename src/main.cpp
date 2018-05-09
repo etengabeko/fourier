@@ -126,33 +126,60 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
 
     std::vector<SineSignal> result(kFrequenciesCount);
 
+    // Первая составляющая сложного сигнала:
     SineSignal& first = result[0];
     first.sine.freqFactor = 5.0;
     first.sine.startPhase = M_PI_2;
     first.behaviour.resize(signalLength);
-    std::fill(std::begin(first.behaviour) + 100,
-              std::begin(first.behaviour) + 500,
-              SineBehaviour{ 2.5, true });
-    std::fill(std::begin(first.behaviour) + 900,
-              std::end(first.behaviour),
-              SineBehaviour{ 1.5, true });
+    size_t period = frequencyToPeriod(first.sine.freqFactor);
+    auto itFirst = std::begin(first.behaviour);
+    auto itLast = (signalLength >= 10 * period) ? std::begin(first.behaviour) + (10 * period)
+                                                : std::end(first.behaviour);
+    auto itEnd = std::end(first.behaviour);
+    double volume = 0.5;
+    do
+    {
+        std::fill(itFirst, itLast, SineBehaviour{ volume, true });
+        volume += 0.5;
+        if (volume > SineBehaviour::kVolumeMax)
+        {
+            volume = 0.5;
+        }
+        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(20 * period)) ? (itFirst + (20 * period))
+                                                                                  : itLast;
+        itLast = (std::distance(itLast, itEnd) > static_cast<int>(20 * period)) ? (itLast + (20 * period))
+                                                                                : itEnd;
+    } while (itLast != itEnd);
 
+    // Вторая составляющая сложного сигнала:
     SineSignal& second = result[1];
-    second.sine.freqFactor = 5.5;
+    second.sine.freqFactor = 2.0;
     second.sine.startPhase = -M_PI_4;
     second.behaviour.resize(signalLength);
-    std::fill(std::begin(second.behaviour),
-              std::begin(second.behaviour) + 300,
-              SineBehaviour{ 1.0, true });
-    std::fill(std::begin(second.behaviour) + 400,
-              std::begin(second.behaviour) + 600,
-              SineBehaviour{ 2.0, true });
-    std::fill(std::begin(second.behaviour) + 700,
-              std::begin(second.behaviour) + 800,
-              SineBehaviour{ 3.0, true });
+    period = frequencyToPeriod(second.sine.freqFactor);
+    itFirst = (signalLength >= 5 * period) ? std::begin(second.behaviour) + (5 * period)
+                                           : std::begin(second.behaviour);
+    itLast = (signalLength >= 15 * period) ? std::begin(second.behaviour) + (15 * period)
+                                           : std::end(second.behaviour);
+    itEnd = std::end(second.behaviour);
+    volume = SineBehaviour::kVolumeMax;
+    do
+    {
+        std::fill(itFirst, itLast, SineBehaviour{ volume, true });
+        volume -= 2.0 * SineBehaviour::kVolumeMin;
+        if (volume < SineBehaviour::kVolumeMin)
+        {
+            volume = SineBehaviour::kVolumeMax;
+        }
+        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(15 * period)) ? (itFirst + (15 * period))
+                                                                                  : itLast;
+        itLast = (std::distance(itLast, itEnd) > static_cast<int>(15 * period)) ? (itLast + (15 * period))
+                                                                                : itEnd;
+    } while (itLast != itEnd);
 
+    // Третья составляющая сложного сигнала:
     SineSignal& third = result[2];
-    third.sine.freqFactor = 2.0;
+    third.sine.freqFactor = 10.0;
     third.sine.startPhase = 0.0;
     third.behaviour.resize(signalLength);
     std::fill(std::begin(third.behaviour),

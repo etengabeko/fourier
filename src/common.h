@@ -58,6 +58,13 @@ const std::vector<double> phaseResponse(const std::vector<std::complex<double>>&
 size_t frequencyToIndex(const double frequency, const size_t width);
 
 /**
+ * @brief frequencyToPeriod - возвращает период синусоидального сигнала (в дискретах) с частотой frequency.
+ * @param frequency - множитель частоты синусоиды.
+ * @return период синусодидального сигнала.
+ */
+size_t frequencyToPeriod(const double frequency);
+
+/**
  * @struct SineOption
  * @brief Основные параметры синусоидального базового сигнала.
  */
