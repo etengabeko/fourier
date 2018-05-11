@@ -26,24 +26,39 @@ struct WindowBounds
     { }
 };
 
+/**
+ * @brief splitToWindows - разделяет входную последовательность signal на окна длиной windowWidth.
+ *        Каждое следующее окно смещается относительно предыдущего на значение offset (окна могут перекрываться).
+ * @param signal - разделяемая последовательность значений.
+ * @param windowWidth - ширина окна.
+ * @param offset - смещение следующего окна от предыдущего.
+ * @return набор окон.
+ */
 std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
-                                         const double frequency,
+                                         const size_t windowWidth,
                                          const size_t offset = 1)
 {
-    const size_t kWindowSize = frequencyToPeriod(frequency);
 
     std::vector<WindowBounds> result;
 
-    if (signal.size() > kWindowSize)
+    if (signal.size() > windowWidth)
     {
-        result.reserve(signal.size()- kWindowSize + 1);
+        result.reserve(signal.size()- windowWidth + 1);
 
-        auto it = signal.cbegin() + kWindowSize,
+        auto it = signal.cbegin() + windowWidth,
              end = signal.cend();
         while (it != end)
         {
-            result.emplace_back((it - kWindowSize), it);
-            it += offset;
+            result.emplace_back((it - windowWidth), it);
+            if (std::distance(it, end) >= static_cast<int>(offset))
+            {
+                it += offset;
+            }
+            else
+            {
+                result.emplace_back(it, end);
+                break;
+            }
         }
     }
     else
@@ -54,6 +69,13 @@ std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
     return result;
 }
 
+
+/**
+ * @brief meanValue - вычисляет среднее значение последовательности, заданной парой итераторов: [first, last).
+ * @param first - начало анализируемой последовательности.
+ * @param last - конец анализируемой последовательности.
+ * @return среднее арифметическое последовательности значений.
+ */
 template <typename Iterator>
 double meanValue(Iterator first, Iterator last)
 {
@@ -65,11 +87,23 @@ double meanValue(Iterator first, Iterator last)
     return (std::accumulate(first, last, 0.0) / static_cast<double>(std::distance(first, last)));
 }
 
+/**
+ * @brief meanValue - вычисляет среднее значение values.
+ * @param values - анализируемая последовательность значений.
+ * @return среднее арифметическое значений values.
+ */
 double meanValue(const std::vector<double>& values)
 {
     return meanValue(std::begin(values), std::end(values));
 }
 
+/**
+ * @brief joinDecomposition - объединяет последовательно расположенные пары структур Wave набора decomposition,
+ *        если промежуток между ними менее значения kMinimumWaveDurationPeriods.
+ * @param decomposition - анализируемая последовательность структур.
+ * @param isAnyJoined - флаг результата - были ли совершены какие-либо объединения?
+ * @return последовательность объединённый структур Wave.
+ */
 WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool* isAnyJoined)
 {
     assert(isAnyJoined != nullptr);
@@ -85,34 +119,50 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
     WaveDecomposition result;
     result.reserve(decomposition.size());
 
-    for (auto it = std::begin(decomposition), end = std::end(decomposition); it != (end - 1); ++it)
-    {
-        const Wave& current = *it;
-        const Wave& next = *(it + 1);
+    auto current = std::begin(decomposition),
+         next = current + 1,
+         end = std::end(decomposition);
 
-        if (   next.start_idx < (current.start_idx + current.length)
-            || (next.start_idx - (current.start_idx + current.length)) < kMinimumLength)
+    while (current != end && next != end)
+    {
+        const Wave& currentWave = *current;
+        const Wave& nextWave = *next;
+
+        if (   nextWave.start_idx < (currentWave.start_idx + currentWave.length)
+            || (nextWave.start_idx - (currentWave.start_idx + currentWave.length)) < kMinimumLength)
         {
-            Wave joined(current);
-            joined.length = next.start_idx + next.length - current.start_idx;
-            joined.confidence = meanValue({ current.confidence, next.confidence });
+            Wave joined(currentWave);
+            joined.length = nextWave.start_idx + nextWave.length - currentWave.start_idx;
+            joined.confidence = meanValue({ currentWave.confidence, nextWave.confidence });
 
             result.push_back(joined);
             *isAnyJoined = true;
         }
         else
         {
-            result.push_back(current);
-            if ((it + 2) == end)
-            {
-                result.push_back(next);
-            }
+            result.push_back(currentWave);
+            result.push_back(nextWave);
         }
+
+        current += 2;
+        next += 2;
+    }
+
+    if (current != end)
+    {
+        result.push_back(*current);
     }
 
     return result;
 }
 
+/**
+ * @brief decomposeByProbabilites - выделяет из временного распределения вероятности обнаружения базового сигнала в сложном
+ *        структуры с параметрами, характеризующими обнаруженный базовый сигнал.
+ * @param probabilities - временное распределение вероятности обнаружения сигнала с частотой frequency в сложном сигнале.
+ * @param frequency - частота базового сигнала.
+ * @return набор структур Wave, характеризующих наличие базового сигнала с частотой frequency в составе сложного сигнала.
+ */
 WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabilities,
                                           const double frequency)
 {
@@ -121,7 +171,7 @@ WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabiliti
     const size_t windowsAliasing = windowWidth / 2;
 
     WaveDecomposition result;
-    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequency, (windowWidth - windowsAliasing));
+    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequencyToPeriod(frequency), (windowWidth - windowsAliasing));
     for (const WindowBounds& each : windows)
     {
         const double windowMeanValue = meanValue(each.lower, each.upper);
@@ -134,10 +184,10 @@ WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabiliti
         }
     }
 
-    bool isContinue = true;
+    volatile bool isContinue = true;
     while (isContinue)
     {
-        result = joinDecomposition(result, &isContinue);
+        result = joinDecomposition(result, const_cast<bool*>(&isContinue));
     }
 
     return result;
@@ -157,45 +207,60 @@ WaveDecomposition decompose(const std::vector<double>& signal,
     for (const double& eachFrequency : frequencies)
     {
         static size_t index = 0;
+        ++index;
+        Logger::trace("Decompose frequency " + std::to_string(index) + "/" + std::to_string(frequencies.size()) + ".");
 
-        size_t kWindowSize = frequencyToPeriod(eachFrequency);
+        const size_t kWindowSize = frequencyToPeriod(eachFrequency);
         const size_t coefWindowExpanding = signal.size() / kWindowSize;
-        kWindowSize *= coefWindowExpanding;
+        const size_t expandedSize = kWindowSize * coefWindowExpanding;
+        Logger::trace("Split to windows, window size = " + std::to_string(kWindowSize) + " discrets.");
 
-        const std::vector<WindowBounds> windowsBounds = splitToWindows(signal, eachFrequency);
+        const std::vector<WindowBounds> windowsBounds = splitToWindows(signal, kWindowSize);
+        Logger::trace("Windows count = " + std::to_string(windowsBounds.size()) + ".");
 
-        columnTitles.push_back("filtered #" + std::to_string(++index));
+        columnTitles.push_back("probability #" + std::to_string(index));
         std::vector<double>& eachProbability = *(columnValues.insert(columnValues.end(), std::vector<double>()));
         eachProbability.reserve(windowsBounds.size());
 
+        Logger::trace("Calculate signal probabilities in windows.");
         for (const auto& eachWindow : windowsBounds)
         {
             std::vector<double> eachSignal(eachWindow.lower, eachWindow.upper);
-            if (eachSignal.size() < kWindowSize)
+            if (eachSignal.size() < expandedSize)
             {
-                eachSignal.resize(kWindowSize);
+                eachSignal.resize(expandedSize);
             }
 
             std::vector<std::complex<double>> eachFilteredSpectrum;
             filterByFrequency(eachSignal, eachFrequency, &eachFilteredSpectrum);
             const std::complex<double> frequencyValue = eachFilteredSpectrum.at(frequencyToIndex(eachFrequency,
                                                                                                  eachFilteredSpectrum.size()));
+            // Вычисленную амплитуду сигнала для данной частоты будем считать вероятностью обнаружения данной частоты на данном отрезке сложного сигнала.
             eachProbability.push_back(coefWindowExpanding * modulus(frequencyValue));
         }
 
         length = std::max(length, eachProbability.size());
     }
 
-    writeValuesToCsv("filtered.csv", columnTitles, length, columnValues);
+    writeValuesToCsv("base_probabilities.csv", columnTitles, length, columnValues);
 
+    Logger::trace("Start probabilities analyzing.");
     WaveDecomposition result;
-
     for (size_t i = 0, size = frequencies.size(); i < size; ++i)
     {
+        Logger::trace("Decompose for frequency #" + std::to_string(i+1) + ".");
         WaveDecomposition forEachFrequency = ::decomposeByProbabilites(columnValues.at(i),
                                                                        frequencies.at(i));
         result.insert(std::end(result),
                       std::begin(forEachFrequency), std::end(forEachFrequency));
+    }
+
+    for (Wave& each : result)
+    {
+        if (each.confidence > 1.0)
+        {
+            each.confidence = 1.0;
+        }
     }
 
     return result;

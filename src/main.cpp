@@ -188,23 +188,30 @@ int main(int argc, char* argv[])
     // Параметры исследования:
     const size_t kSignalLength = 1000; //!< Длина исследуемых отрезков сигналов (в дискретах).
     const bool kNoiseEnabled = true;   //!< Добавлять ли шум при генерации результирующего сигнала?
+    Logger::info(  "Analyze signal length = " + std::to_string(kSignalLength)
+                 + ", add noise = " + (kNoiseEnabled ? "True" : "False") + ".");
 
     // Создание набора базовых сигналов:
+    Logger::trace("Generate base signals.");
     std::vector<double> frequencies;
     const std::vector<SineSignal> baseSignals = makeBaseSignals(kSignalLength, frequencies);
 
     // Генерация результирующего сигнала из набора базовых:
+    Logger::trace("Generate composite signal.");
     CompositeSignal signal = generate(kSignalLength, baseSignals, kNoiseEnabled);
 
     // Необязательный блок. Нужен лишь для сохранения полученных значений в csv-файлы (например, для построения графиков).
     {
         // Вычисление спектра результирующего сигнала:
+        Logger::trace("Calculating spectrum of composite signal.");
         SignalSpectrum spectrum = fourier::dft(signal);
 
         // Восстановление исходного сигнала по его спектру:
+        Logger::trace("Repairing signal by its spectrum.");
         CompositeSignal repaired = fourier::inverseDft(spectrum);
 
         // Запись базовых составляющих сигнала в csv-файлы:
+        Logger::trace("Writing csv files:");
         for (const SineSignal& each : baseSignals)
         {
             static size_t index = 0;
@@ -228,10 +235,12 @@ int main(int argc, char* argv[])
     }
 
     // Разложение результирующего сигнала на набор базовых:
+    Logger::trace("Start signal decomposition.");
     WaveDecomposition waves = decompose(signal, frequencies);
+    Logger::trace("Decomposition finished.");
 
     // Логгирование результата разложения:
-    Logger::info("Signal decomposition:");
+    Logger::info("Signal decomposition result:");
     for (const Wave& each : waves)
     {
         static size_t index = 0;

@@ -13,10 +13,10 @@
 const size_t kMinimumWaveDurationPeriods = 5;
 
 /**
- * @brief decompose - TODO
- * @param signal
- * @param frequencies
- * @return
+ * @brief decompose - реализация алгоритма декомпозиции сигнала signal на составляющие базовые сигналы с частотами frequencies.
+ * @param signal - сложный сигнал, систавленный из суммы простых сигналов с частотами frequencies.
+ * @param frequencies - набор частот, составляющих сложный сигнал.
+ * @return набор характеристик базовых сигналов, выделенных из состава сложного.
  */
 WaveDecomposition decompose(const std::vector<double>& signal,
                             const std::vector<double>& frequencies);
