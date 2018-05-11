@@ -6,6 +6,7 @@
 #include "common.h"
 #include "dft.h"
 #include "filter.h"
+#include "logger.h"
 #include "wave.h"
 
 namespace
@@ -61,8 +62,7 @@ std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
 }
 
 WaveDecomposition decompose(const std::vector<double>& signal,
-                            const std::vector<double>& frequencies,
-                            std::function<void(const std::string&,const std::vector<std::string>&,const size_t,const std::vector<std::vector<double>>&)> writeFunc)
+                            const std::vector<double>& frequencies)
 {
     WaveDecomposition result;
 
@@ -83,8 +83,8 @@ WaveDecomposition decompose(const std::vector<double>& signal,
         const std::vector<WindowBounds> windowsBounds = splitToWindows(signal, eachFrequency);
 
         columnTitles.push_back("filtered #" + std::to_string(++index));
-        std::vector<double>& eachFiltered = *(columnValues.insert(columnValues.end(), std::vector<double>()));
-        eachFiltered.reserve(windowsBounds.size());
+        std::vector<double>& eachProbability = *(columnValues.insert(columnValues.end(), std::vector<double>()));
+        eachProbability.reserve(windowsBounds.size());
 
         for (const auto& eachWindow : windowsBounds)
         {
@@ -98,13 +98,13 @@ WaveDecomposition decompose(const std::vector<double>& signal,
             filterByFrequency(eachSignal, eachFrequency, &eachFilteredSpectrum);
             const std::complex<double> frequencyValue = eachFilteredSpectrum.at(frequencyToIndex(eachFrequency,
                                                                                                  eachFilteredSpectrum.size()));
-            eachFiltered.push_back(coefWindowExpanding * modulus(frequencyValue));
+            eachProbability.push_back(coefWindowExpanding * modulus(frequencyValue));
         }
 
-        length = std::max(length, eachFiltered.size());
+        length = std::max(length, eachProbability.size());
     }
 
-    writeFunc("filtered.csv", columnTitles, length, columnValues);
+    writeValuesToCsv("filtered.csv", columnTitles, length, columnValues);
 
     return result;
 }

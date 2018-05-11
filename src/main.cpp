@@ -6,69 +6,11 @@
 #include "logger.h"
 
 #include <algorithm>
-#include <cstring>
-#include <fstream>
-#include <functional>
 #include <string>
 #include <vector>
 
 namespace
 {
-
-/**
- * @brief writeValuesToCsv - записывает значения values в csv-файл с именем fileName.
- * @param fileName - имя выходного файла.
- * @param titles - список заголовков столбцов данных.
- * @param linesCount - количество записываемых строк данных.
- * @param columns - список данных для записи (по столбцам).
- */
-void writeValuesToCsv(const std::string& fileName,
-                      const std::vector<std::string>& titles,
-                      const size_t linesCount,
-                      const std::vector<std::vector<double>>& columns)
-{
-    std::ofstream out(fileName);
-    if (!out.good())
-    {
-        Logger::error(strerror(errno));
-        return;
-    }
-
-    bool isFirstColumn = true;
-    for (const std::string& eachTitle : titles)
-    {
-        if (!isFirstColumn)
-            out << ", ";
-        else
-            isFirstColumn = false;
-
-        out << eachTitle;
-    }
-    out << std::endl;
-
-    for (size_t i = 0; i < linesCount; ++i)
-    {
-        if (!out)
-        {
-            Logger::error(strerror(errno));
-            return;
-        }
-
-        isFirstColumn = true;
-        for (const std::vector<double>& eachColumn : columns)
-        {
-            if (!isFirstColumn)
-                out << ", ";
-            else
-                isFirstColumn = false;
-
-            out << (eachColumn.size() > i ? std::to_string(eachColumn.at(i)) : "");
-        }
-        out << std::endl;
-    }
-
-    Logger::info("Writed " + fileName);
-}
 
 /**
  * @brief baseSignalValues - возвращает набор значений амплитуды базового сигнала signal.
@@ -252,9 +194,7 @@ int main(int argc, char* argv[])
     const std::vector<SineSignal> baseSignals = makeBaseSignals(kSignalLength, frequencies);
 
     // Генерация результирующего сигнала из набора базовых:
-    CompositeSignal signal = generate(kSignalLength,
-                                      baseSignals,
-                                      kNoiseEnabled);
+    CompositeSignal signal = generate(kSignalLength, baseSignals, kNoiseEnabled);
 
     // Необязательный блок. Нужен лишь для сохранения полученных значений в csv-файлы (например, для построения графиков).
     {
@@ -274,23 +214,21 @@ int main(int argc, char* argv[])
             CompositeSignal eachValues = ::baseSignalValues(each, &eachEnables);
             SignalSpectrum eachSpectrum = fourier::dft(eachValues);
 
-            ::writeValuesToCsv(fileName,
-                               { "on/off", "original", "spectrum" },
-                               kSignalLength,
-                               { eachEnables, eachValues, frequencyResponse(eachSpectrum) });
+            writeValuesToCsv(fileName,
+                             { "on/off", "original", "spectrum" },
+                             kSignalLength,
+                             { eachEnables, eachValues, frequencyResponse(eachSpectrum) });
         }
 
         // Запись результирующего сигнала, его спектра и восстановленного сигнала в csv-файл:
-        ::writeValuesToCsv("repaired-signal.csv",
-                           { "original", "spectrum", "repaired" },
-                           kSignalLength,
-                           { signal,
-                             frequencyResponse(spectrum),
-                             repaired });
+        writeValuesToCsv("repaired-signal.csv",
+                         { "original", "spectrum", "repaired" },
+                         kSignalLength,
+                         { signal, frequencyResponse(spectrum), repaired });
     }
 
     // Разложение результирующего сигнала на набор базовых:
-    WaveDecomposition waves = decompose(signal, frequencies, &writeValuesToCsv);
+    WaveDecomposition waves = decompose(signal, frequencies);
 
     // Логгирование результата разложения:
     Logger::info("Signal decomposition:");

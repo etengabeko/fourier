@@ -1,7 +1,6 @@
 #ifndef DECOMPOSE_H
 #define DECOMPOSE_H
 
-#include <functional>
 #include <string>
 #include <vector>
 
@@ -20,7 +19,6 @@ const size_t kMinimumWaveDurationPeriods = 5;
  * @return
  */
 WaveDecomposition decompose(const std::vector<double>& signal,
-                            const std::vector<double>& frequencies,
-                            std::function<void(const std::string&,const std::vector<std::string>&,const size_t,const std::vector<std::vector<double>>&)> writeFunc);
+                            const std::vector<double>& frequencies);
 
 #endif // DECOMPOSE_H
