@@ -1,27 +1,78 @@
 #include "filter.h"
 
 #include <algorithm>
+#include <map>
+#include <utility>
 
 #include "common.h"
 #include "dft.h"
 #include "generate.h"
+#include "logger.h"
 
 namespace
 {
 
 const std::vector<double> makeStandardSignal(const double frequency, const size_t length)
 {
-    const SineSignal sine{ { frequency, 0.0 }, std::vector<SineBehaviour>(length, { SineBehaviour::kVolumeMax, true }) };
+    static std::map<std::pair<double, size_t>, std::vector<double>> standardSignalsCache;
 
-    std::vector<double> result;
-    result.reserve(length);
-
-    for (size_t index = 0; index < length; ++index)
+    auto founded = standardSignalsCache.find({ frequency, length });
+    if (founded == std::end(standardSignalsCache))
     {
-        result.push_back(sineSignalValue(sine, index));
+        const SineSignal sine{ { frequency, 0.0 }, std::vector<SineBehaviour>(length, { SineBehaviour::kVolumeMax, true }) };
+
+        std::vector<double> signalValues;
+        signalValues.reserve(length);
+
+        for (size_t index = 0; index < length; ++index)
+        {
+            signalValues.push_back(sineSignalValue(sine, index));
+        }
+
+        auto inserted = standardSignalsCache.insert({ { frequency, length }, signalValues });
+        if (inserted.second)
+        {
+            founded = inserted.first;
+        }
+        else
+        {
+            Logger::error(  "Unexpected error: can't insert value in signals cache: "
+                            "{ frequency = " + std::to_string(frequency)
+                          + ", length = " + std::to_string(length)
+                          + " }.");
+            return std::vector<double>();
+        }
     }
 
-    return result;
+    return founded->second;
+}
+
+const std::vector<std::complex<double>> makeStandardSpectrum(const double frequency,
+                                                             const std::vector<double> signal)
+{
+    static std::map<std::pair<double, size_t>, std::vector<std::complex<double>>> standardSpectrumsCache;
+
+    const size_t kLength = signal.size();
+
+    auto founded = standardSpectrumsCache.find({ frequency, kLength });
+    if (founded == std::end(standardSpectrumsCache))
+    {
+        auto inserted = standardSpectrumsCache.insert({ { frequency, kLength }, fourier::dft(signal) });
+        if (inserted.second)
+        {
+            founded = inserted.first;
+        }
+        else
+        {
+            Logger::error(  "Unexpected error: can't insert value in spectrums cache: "
+                            "{ frequency = " + std::to_string(frequency)
+                          + ", length = " + std::to_string(kLength)
+                          + " }.");
+            return std::vector<std::complex<double>>();
+        }
+    }
+
+    return founded->second;
 }
 
 enum class FilterType
@@ -70,7 +121,7 @@ const std::vector<double> filterByFrequency(const std::vector<double>& composite
     const size_t kLength = compositeSignal.size();
 
     const std::vector<double> standardSignal = ::makeStandardSignal(frequency, kLength);
-    const std::vector<std::complex<double>> standardSignalSpectrum = fourier::dft(standardSignal);
+    const std::vector<std::complex<double>> standardSignalSpectrum = ::makeStandardSpectrum(frequency, standardSignal);
 
     const std::vector<std::complex<double>> compositeSignalSpectrum = fourier::dft(compositeSignal);
 
