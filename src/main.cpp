@@ -1,14 +1,14 @@
 #include "common.h"
 #include "decompose.h"
 #include "dft.h"
-#include "generate.h"
 #include "filter.h"
+#include "generate.h"
 #include "logger.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -121,7 +121,7 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
                                               std::vector<double>& frequencies)
 {
 
-    const size_t kFrequenciesCount = 3; //!< Количество базовых частот, из которых складывается результирующий сигнал.
+    const size_t kFrequenciesCount = 4; //!< Количество базовых частот, из которых складывается результирующий сигнал.
     frequencies.reserve(kFrequenciesCount);
 
     std::vector<SineSignal> result(kFrequenciesCount);
@@ -132,10 +132,12 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     first.sine.startPhase = M_PI_2;
     first.behaviour.resize(signalLength);
     size_t period = frequencyToPeriod(first.sine.freqFactor);
-    auto itFirst = std::begin(first.behaviour);
-    auto itLast = (signalLength >= 10 * period) ? std::begin(first.behaviour) + (10 * period)
-                                                : std::end(first.behaviour);
+    size_t offset = (signalLength > (period / 2)) ? (period / 2) : 0;
+
     auto itEnd = std::end(first.behaviour);
+    auto itFirst = std::begin(first.behaviour) + offset;
+    auto itLast = (signalLength >= (9 * period + offset)) ? std::begin(first.behaviour) + (9 * period + offset)
+                                                          : itEnd;
     double volume = 0.5;
     do
     {
@@ -145,9 +147,9 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
         {
             volume = 0.5;
         }
-        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(20 * period)) ? (itFirst + (20 * period))
+        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(15 * period)) ? (itFirst + (15 * period))
                                                                                   : itLast;
-        itLast = (std::distance(itLast, itEnd) > static_cast<int>(20 * period)) ? (itLast + (20 * period))
+        itLast = (std::distance(itLast, itEnd) > static_cast<int>(15 * period)) ? (itLast + (15 * period))
                                                                                 : itEnd;
     } while (itLast != itEnd);
 
@@ -157,11 +159,12 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     second.sine.startPhase = -M_PI_4;
     second.behaviour.resize(signalLength);
     period = frequencyToPeriod(second.sine.freqFactor);
-    itFirst = (signalLength >= 5 * period) ? std::begin(second.behaviour) + (5 * period)
-                                           : std::begin(second.behaviour);
-    itLast = (signalLength >= 15 * period) ? std::begin(second.behaviour) + (15 * period)
-                                           : std::end(second.behaviour);
+    offset = (signalLength > (3 * period / 2)) ? (3 * period / 2) : 0;
+
     itEnd = std::end(second.behaviour);
+    itFirst = std::begin(second.behaviour) + offset;
+    itLast = (signalLength >= (15 * period / 2 + offset)) ? std::begin(second.behaviour) + (15 * period / 2 + offset)
+                                                          : itEnd;
     volume = SineBehaviour::kVolumeMax;
     do
     {
@@ -171,24 +174,52 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
         {
             volume = SineBehaviour::kVolumeMax;
         }
-        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(15 * period)) ? (itFirst + (15 * period))
+        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(13 * period)) ? (itFirst + (13 * period))
                                                                                   : itLast;
-        itLast = (std::distance(itLast, itEnd) > static_cast<int>(15 * period)) ? (itLast + (15 * period))
+        itLast = (std::distance(itLast, itEnd) > static_cast<int>(13 * period)) ? (itLast + (13 * period))
                                                                                 : itEnd;
     } while (itLast != itEnd);
 
     // Третья составляющая сложного сигнала:
     SineSignal& third = result[2];
     third.sine.freqFactor = 10.0;
-    third.sine.startPhase = 0.0;
+    third.sine.startPhase = M_PI / 6;
     third.behaviour.resize(signalLength);
-    std::fill(std::begin(third.behaviour),
-              std::end(third.behaviour),
-              SineBehaviour{SineBehaviour::kVolumeMin, true});
+    period = frequencyToPeriod(third.sine.freqFactor);
+    offset = (signalLength > (period / 3)) ? (period / 3) : 0;
+
+    itEnd = std::end(third.behaviour);
+    itFirst = std::begin(third.behaviour) + offset;
+    itLast = (signalLength >= (5 * period + offset)) ? std::begin(third.behaviour) + (5 * period + offset)
+                                                     : itEnd;
+    volume = SineBehaviour::kVolumeMax;
+    do
+    {
+        std::fill(itFirst, itLast, SineBehaviour{ volume, true });
+
+        itFirst = (std::distance(itFirst, itEnd) > static_cast<int>(10 * period)) ? (itFirst + (10 * period))
+                                                                                  : itLast;
+        itLast = (std::distance(itLast, itEnd) > static_cast<int>(10 * period)) ? (itLast + (10 * period))
+                                                                                : itEnd;
+    } while (itLast != itEnd);
+
+    // Четвёртая составляющая сложного сигнала:
+    SineSignal& fourth = result[3];
+    fourth.sine.freqFactor = 5.5;
+    fourth.sine.startPhase = 0.0;
+    fourth.behaviour.resize(signalLength);
+    period = frequencyToPeriod(fourth.sine.freqFactor);
+    offset = 0;
+
+    itFirst = std::begin(fourth.behaviour) + offset;
+    itLast = std::end(fourth.behaviour);
+    volume = SineBehaviour::kVolumeMin;
+    std::fill(itFirst, itLast, SineBehaviour{ volume, true });
 
     frequencies.push_back(first.sine.freqFactor);
     frequencies.push_back(second.sine.freqFactor);
     frequencies.push_back(third.sine.freqFactor);
+    frequencies.push_back(fourth.sine.freqFactor);
 
     return result;
 }
@@ -233,24 +264,7 @@ int main(int argc, char* argv[])
         // Восстановление исходного сигнала по его спектру:
         CompositeSignal repaired = fourier::inverseDft(spectrum);
 
-        // Восстановление гармоник, соответствующих базовым частотам:
-        std::vector<std::vector<double>> baseHarmonics;
-        baseHarmonics.reserve(baseSignals.size());
-        std::vector<std::string> titles;
-        titles.reserve(baseSignals.size());
-        for (const SineSignal& each : baseSignals)
-        {
-            static size_t index = 0;
-            titles.push_back("harmonic #" + std::to_string(++index));
-            baseHarmonics.push_back(fourier::inverseDft(spectrum,
-                                                        frequencyToIndex(each.sine.freqFactor, kSignalLength)));
-        }
-        ::writeValuesToCsv("base_harmonics.csv",
-                           titles,
-                           kSignalLength,
-                           baseHarmonics);
-
-        // Выделение базовых составляющих из сигнала и запись их в csv-файлы:
+        // Запись базовых составляющих сигнала в csv-файлы:
         for (const SineSignal& each : baseSignals)
         {
             static size_t index = 0;
@@ -258,26 +272,25 @@ int main(int argc, char* argv[])
 
             std::vector<double> eachEnables;
             CompositeSignal eachValues = ::baseSignalValues(each, &eachEnables);
+            SignalSpectrum eachSpectrum = fourier::dft(eachValues);
 
-            SignalSpectrum eachSpectrum;
-            CompositeSignal eachRepaired = filterByFrequency(signal,
-                                                             each.sine.freqFactor,
-                                                             &eachSpectrum);
             ::writeValuesToCsv(fileName,
-                               { "on/off", "original", "spectrum", "repaired" },
+                               { "on/off", "original", "spectrum" },
                                kSignalLength,
-                               { eachEnables, eachValues, frequencyResponse(eachSpectrum), eachRepaired });
+                               { eachEnables, eachValues, frequencyResponse(eachSpectrum) });
         }
 
         // Запись результирующего сигнала, его спектра и восстановленного сигнала в csv-файл:
         ::writeValuesToCsv("repaired-signal.csv",
                            { "original", "spectrum", "repaired" },
                            kSignalLength,
-                           { signal, frequencyResponse(spectrum), repaired });
+                           { signal,
+                             frequencyResponse(spectrum),
+                             repaired });
     }
-/* TODO
+
     // Разложение результирующего сигнала на набор базовых:
-    WaveDecomposition waves = decompose(signal, frequencies);
+    WaveDecomposition waves = decompose(signal, frequencies, &writeValuesToCsv);
 
     // Логгирование результата разложения:
     Logger::info("Signal decomposition:");
@@ -286,6 +299,6 @@ int main(int argc, char* argv[])
         static size_t index = 0;
         Logger::info("Wave #" + std::to_string(++index) + ":\n" + each.toString());
     }
-*/
+
     return EXIT_SUCCESS;
 }

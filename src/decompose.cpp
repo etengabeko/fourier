@@ -1,84 +1,58 @@
 #include "decompose.h"
 
 #include <algorithm>
-#include <cmath>
-#include <utility>
+#include <numeric>
 
 #include "common.h"
 #include "dft.h"
+#include "filter.h"
 #include "wave.h"
 
 namespace
 {
 
-double noiseLevel() { return 0.15; }
+size_t windowSizePeriods() { return 1; }
 
-const std::vector<std::pair<size_t, size_t>> split(const std::vector<double>& signal)
+size_t windowSizeForFrequency(const double frequency)
 {
-    const double kThreshold = ::noiseLevel() * *(std::max_element(std::begin(signal),
-                                                                  std::end(signal),
-                                                                  [](const double& lhs, const double& rhs)
-                                                                  {
-                                                                      return std::abs(lhs) < std::abs(rhs);
-                                                                  }));
-    std::vector<std::pair<size_t, size_t>> result;
-
-    bool isFound = false;
-    size_t start = 0;
-    for (size_t i = 0, size = signal.size(); i < size; ++i)
-    {
-        if (std::abs(signal.at(i)) > kThreshold)
-        {
-            if (!isFound)
-            {
-                start = i;
-                isFound = true;
-            }
-        }
-        else
-        {
-            if (isFound)
-            {
-                result.emplace_back(start, i);
-                start = 0;
-                isFound = false;
-            }
-        }
-    }
-
-    return result;
+    return (windowSizePeriods() * frequencyToPeriod(frequency));
 }
 
-WaveDecomposition split(const std::vector<double>& baseSine, const double frequency)
+struct WindowBounds
 {
-    const double kConfidence = -1.0;
-    const size_t kThreshold = baseSine.size() * 0.01; // TODO
+    std::vector<double>::const_iterator lower;
+    std::vector<double>::const_iterator upper;
 
-    WaveDecomposition result;
-    Wave wave(frequency, kConfidence, 0, 0);
+    WindowBounds() = default;
+    WindowBounds(const std::vector<double>::const_iterator& first,
+                 const std::vector<double>::const_iterator& last) :
+        lower(first),
+        upper(last)
+    { }
+};
 
-    const std::vector<std::pair<size_t, size_t>> wavesParts = ::split(baseSine);
-    for (auto begin = std::begin(wavesParts), end = std::end(wavesParts), it = begin; it != end; ++it)
+std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
+                                         const double frequency)
+{
+    const size_t kWindowSize = windowSizeForFrequency(frequency);
+
+    std::vector<WindowBounds> result;
+
+    if (signal.size() > kWindowSize)
     {
-        auto next = it + 1;
+        result.reserve(signal.size()- kWindowSize + 1);
 
-        if (it == begin)
+        auto it = signal.cbegin() + kWindowSize,
+             end = signal.cend();
+        while (it != end)
         {
-            wave.start_idx = it->first;
+            result.emplace_back((it - kWindowSize), it);
+            ++it;
         }
-        else if (next == end)
-        {
-            wave.length = it->second - wave.start_idx;
-            result.push_back(wave);
-        }
-        else if ((next->first - it->second) > kThreshold)
-        {
-            wave.length = it->second - wave.start_idx;
-            result.push_back(wave);
-
-            wave.start_idx = next->first;
-            wave.length = 0;
-        }
+    }
+    else
+    {
+        result.emplace_back(signal.cbegin(), signal.cend());
     }
 
     return result;
@@ -87,24 +61,50 @@ WaveDecomposition split(const std::vector<double>& baseSine, const double freque
 }
 
 WaveDecomposition decompose(const std::vector<double>& signal,
-                            const std::vector<double>& frequencies)
+                            const std::vector<double>& frequencies,
+                            std::function<void(const std::string&,const std::vector<std::string>&,const size_t,const std::vector<std::vector<double>>&)> writeFunc)
 {
-    using SignalSpectrum = std::vector<std::complex<double>>;
-
     WaveDecomposition result;
-    result.reserve(frequencies.size());
 
-    const SignalSpectrum spectrum = fourier::dft(signal);
+    std::vector<std::string> columnTitles;
+    std::vector<std::vector<double>> columnValues;
+    columnTitles.reserve(frequencies.size());
+    columnValues.reserve(frequencies.size());
+    size_t length = 0;
 
-    for (const double& each : frequencies)
+    for (const double& eachFrequency : frequencies)
     {
-        const WaveDecomposition waves = ::split(fourier::inverseDft(spectrum,
-                                                                    frequencyToIndex(each, frequencies.size())),
-                                                each);
-        result.insert(result.end(),
-                      std::begin(waves),
-                      std::end(waves));
+        static size_t index = 0;
+
+        size_t kWindowSize = ::windowSizeForFrequency(eachFrequency);
+        const size_t coefWindowExpanding = signal.size() / kWindowSize;
+        kWindowSize *= coefWindowExpanding;
+
+        const std::vector<WindowBounds> windowsBounds = splitToWindows(signal, eachFrequency);
+
+        columnTitles.push_back("filtered #" + std::to_string(++index));
+        std::vector<double>& eachFiltered = *(columnValues.insert(columnValues.end(), std::vector<double>()));
+        eachFiltered.reserve(windowsBounds.size());
+
+        for (const auto& eachWindow : windowsBounds)
+        {
+            std::vector<double> eachSignal(eachWindow.lower, eachWindow.upper);
+            if (eachSignal.size() < kWindowSize)
+            {
+                eachSignal.resize(kWindowSize);
+            }
+
+            std::vector<std::complex<double>> eachFilteredSpectrum;
+            filterByFrequency(eachSignal, eachFrequency, &eachFilteredSpectrum);
+            const std::complex<double> frequencyValue = eachFilteredSpectrum.at(frequencyToIndex(eachFrequency,
+                                                                                                 eachFilteredSpectrum.size()));
+            eachFiltered.push_back(coefWindowExpanding * modulus(frequencyValue));
+        }
+
+        length = std::max(length, eachFiltered.size());
     }
+
+    writeFunc("filtered.csv", columnTitles, length, columnValues);
 
     return result;
 }
