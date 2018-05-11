@@ -4,7 +4,7 @@
 #include <cstddef>
 #include <vector>
 
-#include "common.h"
+#include "commons.h"
 
 /**
  * @brief generate - генерирует сигнал длиной signalLength из набора базовых сигналов,

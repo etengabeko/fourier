@@ -1,5 +1,5 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef COMMONS_H
+#define COMMONS_H
 
 #include <complex>
 #include <vector>
@@ -97,4 +97,4 @@ struct SineSignal
     std::vector<SineBehaviour> behaviour; //!< Поведение базового сигнала во времени.
 };
 
-#endif // COMMON_H
+#endif // COMMONS_H

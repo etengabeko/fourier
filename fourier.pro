@@ -14,7 +14,7 @@ DESTDIR = $$PWD/build
 INCLUDEPATH += src
 
 HEADERS = \
-    src/common.h \
+    src/commons.h \
     src/decompose.h \
     src/dft.h \
     src/filter.h \
@@ -23,7 +23,7 @@ HEADERS = \
     src/wave.h \
 
 SOURCES = \
-    src/common.cpp \
+    src/commons.cpp \
     src/decompose.cpp \
     src/dft.cpp \
     src/filter.cpp \
