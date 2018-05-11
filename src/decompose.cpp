@@ -35,8 +35,7 @@ struct WindowBounds
  * @return набор окон.
  */
 std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
-                                         const size_t windowWidth,
-                                         const size_t offset = 1)
+                                         const size_t windowWidth)
 {
 
     std::vector<WindowBounds> result;
@@ -50,15 +49,7 @@ std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
         while (it != end)
         {
             result.emplace_back((it - windowWidth), it);
-            if (std::distance(it, end) >= static_cast<int>(offset))
-            {
-                it += offset;
-            }
-            else
-            {
-                result.emplace_back(it, end);
-                break;
-            }
+            ++it;
         }
     }
     else
@@ -150,7 +141,17 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
 
     if (current != end)
     {
-        result.push_back(*current);
+        Wave& lastWave = result.back();
+        const Wave& currentWave = *current;
+
+        if (   currentWave.start_idx < (lastWave.start_idx + lastWave.length)
+            || (currentWave.start_idx - (lastWave.start_idx + lastWave.length)) < kMinimumLength)
+        {
+            lastWave.length = currentWave.start_idx + currentWave.length - lastWave.start_idx;
+            lastWave.confidence = meanValue({ lastWave.confidence, currentWave.confidence });
+
+            *isAnyJoined = true;
+        }
     }
 
     return result;
@@ -166,12 +167,10 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
 WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabilities,
                                           const double frequency)
 {
-    const double kThreshold = 0.75;
-    const size_t windowWidth = frequencyToPeriod(frequency);
-    const size_t windowsAliasing = windowWidth / 2;
+    const double kThreshold = 0.50;
 
     WaveDecomposition result;
-    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequencyToPeriod(frequency), (windowWidth - windowsAliasing));
+    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequencyToPeriod(frequency));
     for (const WindowBounds& each : windows)
     {
         const double windowMeanValue = meanValue(each.lower, each.upper);
