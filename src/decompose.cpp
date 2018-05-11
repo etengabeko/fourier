@@ -106,6 +106,7 @@ double meanValue(const std::vector<double>& values)
  */
 WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool* isAnyJoined)
 {
+    Logger::trace("joinDecomposition size = " + std::to_string(decomposition.size()));
     assert(isAnyJoined != nullptr);
     *isAnyJoined = false;
 
@@ -166,6 +167,7 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
 WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabilities,
                                           const double frequency)
 {
+    Logger::trace("decomposeByProbabilites frequency = " + std::to_string(frequency));
     const double kThreshold = 0.75;
     const size_t windowWidth = frequencyToPeriod(frequency);
     const size_t windowsAliasing = windowWidth / 2;
@@ -180,7 +182,7 @@ WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabiliti
             result.emplace_back(frequency,
                                 windowMeanValue,
                                 std::distance(std::begin(probabilities), each.lower),
-                                std::distance(each.upper, each.lower));
+                                std::distance(each.lower, each.upper));
         }
     }
 
