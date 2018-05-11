@@ -35,7 +35,8 @@ struct WindowBounds
  * @return набор окон.
  */
 std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
-                                         const size_t windowWidth)
+                                         const size_t windowWidth,
+                                         const size_t offset = 1)
 {
 
     std::vector<WindowBounds> result;
@@ -49,7 +50,15 @@ std::vector<WindowBounds> splitToWindows(const std::vector<double>& signal,
         while (it != end)
         {
             result.emplace_back((it - windowWidth), it);
-            ++it;
+            if (std::distance(it, end) >= static_cast<int>(offset))
+            {
+                it += offset;
+            }
+            else
+            {
+                result.emplace_back(it, end);
+                break;
+            }
         }
     }
     else
@@ -167,10 +176,12 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
 WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabilities,
                                           const double frequency)
 {
-    const double kThreshold = 0.50;
+    const double kThreshold = 0.90;
+    const size_t windowWidth = frequencyToPeriod(frequency);
+    const size_t windowsAliasing = windowWidth / 2;
 
     WaveDecomposition result;
-    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequencyToPeriod(frequency));
+    const std::vector<WindowBounds> windows = splitToWindows(probabilities, frequencyToPeriod(frequency), (windowWidth - windowsAliasing));
     for (const WindowBounds& each : windows)
     {
         const double windowMeanValue = meanValue(each.lower, each.upper);
