@@ -176,7 +176,9 @@ WaveDecomposition joinDecomposition(const WaveDecomposition& decomposition, bool
 WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabilities,
                                           const double frequency)
 {
-    const double kThreshold = 0.90;
+    const double kThreshold = 0.70;
+    const double kMaxValue = *std::max_element(std::begin(probabilities),
+                                               std::end(probabilities));
     const size_t windowWidth = frequencyToPeriod(frequency);
     const size_t windowsAliasing = windowWidth / 2;
 
@@ -185,10 +187,10 @@ WaveDecomposition decomposeByProbabilites(const std::vector<double>& probabiliti
     for (const WindowBounds& each : windows)
     {
         const double windowMeanValue = meanValue(each.lower, each.upper);
-        if (windowMeanValue >= kThreshold)
+        if (windowMeanValue >= (kThreshold * kMaxValue))
         {
             result.emplace_back(frequency,
-                                windowMeanValue,
+                                (windowMeanValue / kMaxValue),
                                 std::distance(std::begin(probabilities), each.lower),
                                 std::distance(each.lower, each.upper));
         }
