@@ -62,7 +62,6 @@ const std::vector<double> baseSignalValues(const SineSignal& signal,
 const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
                                               std::vector<double>& frequencies)
 {
-
     const size_t kFrequenciesCount = 4; //!< Количество базовых частот, из которых складывается результирующий сигнал.
     frequencies.reserve(kFrequenciesCount);
 
@@ -166,6 +165,25 @@ const std::vector<SineSignal> makeBaseSignals(const size_t signalLength,
     return result;
 }
 
+/*
+const std::vector<SineSignal> makeAloneSineSignal(const size_t signalLength,
+                                                  std::vector<double>& frequencies)
+{
+    frequencies.resize(1, 5.0);
+
+    SineSignal sine
+    {
+        { frequencies.at(0), 0.0 },
+        std::vector<SineBehaviour>(signalLength, { SineBehaviour::kVolumeMin, true })
+    };
+
+    std::fill(sine.behaviour.begin(),
+              sine.behaviour.begin() + sine.behaviour.size()/2,
+              SineBehaviour{ SineBehaviour::kVolumeMin, false });
+
+    return { sine };
+}
+*/
 }
 
 /**
@@ -194,7 +212,7 @@ int main(int argc, char* argv[])
     // Создание набора базовых сигналов:
     Logger::trace("Generate base signals.");
     std::vector<double> frequencies;
-    const std::vector<SineSignal> baseSignals = makeBaseSignals(kSignalLength, frequencies);
+    const std::vector<SineSignal> baseSignals = ::makeBaseSignals(kSignalLength, frequencies); // makeAloneSineSignal(kSignalLength, frequencies);
 
     // Генерация результирующего сигнала из набора базовых:
     Logger::trace("Generate composite signal.");
