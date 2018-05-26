@@ -7,7 +7,7 @@ cmake -B./build -H. -DCMAKE_BUILD_TYPE=Release
 cmake --build ./build
 ```
 
-For build debug version add:
+For build debug version replace:
 ```
 cmake -B./build -H. -DCMAKE_BUILD_TYPE=Debug
 ```
