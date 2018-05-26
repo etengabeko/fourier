@@ -3,7 +3,7 @@ Build project with CMake (minimum version 3.1).
 Build steps:
 ```
 cd <project_dir>
-cmake -B./build -H.
+cmake -B./build -H. -DCMAKE_BUILD_TYPE=Release
 cmake --build ./build
 ```
 
